@@ -10,6 +10,7 @@ import (
 	http "net/http"
 	os "os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -37,9 +38,9 @@ func run() error {
 		flag.Usage()
 		return errors.New("address expected")
 	}
+	fsrootdir, _ = filepath.Abs(fsrootdir)
 	if fsrootdir == "" {
-		flag.Usage()
-		return errors.New("root expected")
+		return errors.New("root invalid")
 	}
 
 	rootfs := afero.NewBasePathFs(afero.NewOsFs(), fsrootdir)
