@@ -1,0 +1,168 @@
+directive @scalarInfo(
+    baseType: String!
+) on SCALAR
+
+"a 64-bit integer"
+scalar Int64 @scalarInfo(baseType: "Int")
+
+enum FileType {
+    regular
+    dir
+    symlink
+    namedPipe
+    socket
+    device
+    charDevice
+    irregular
+}
+
+"a representation of the file's mode"
+type FileMode {
+    "the type of file"
+    type: FileType!
+    "permission bits"
+    perm: Int!
+    "whether or not the sticky bit is set"
+    sticky: Boolean!
+}
+
+"a generic file"
+interface File {
+    "file ID"
+    id: ID!
+    "the file's name, without path"
+    name: String!
+    "the full path to the file"
+    path: String!
+    "the size of the file, in bytes"
+    size: Int64
+    "the file mode"
+    mode: FileMode!
+    "file modification time"
+    modTime: String!
+    "the parent directory of this file, or null if at the root directory"
+    parent: File
+}
+
+"file contents (read) or write encoding"
+enum Encoding {
+    auto # only valid as input to RegularFile.contents
+    utf8
+    base64
+}
+
+"the contents of a file"
+type FileContents {
+    "the file's data contents"
+    data: String!
+    "the position of the file after the read if there is more data to read, to be used with seek"
+    next: Int64
+    "the encoding of data"
+    encoding: Encoding!
+    "set to a warning if there was data loss"
+    warning: String
+}
+
+type RegularFile implements File {
+    id: ID!
+    name: String!
+    path: String!
+    size: Int64
+    mode: FileMode!
+    modTime: String!
+    parent: File
+    # maxReadBytes is the max bytes to return, default (-1) for unlimited.
+    # The implementation may enforce a hard cap on the bytes read, requiring paging with next/seek.
+    # Negative seek means don't seek.
+    "the contents of this file"
+    contents(encoding: Encoding! = auto, maxReadBytes: Int64! = -1, seek: Int64! = -1): FileContents!
+}
+
+type Dir implements File {
+    id: ID!
+    name: String!
+    path: String!
+    size: Int64
+    mode: FileMode!
+    modTime: String!
+    parent: File
+    # first is max children to return, default (-1) for unlimited.
+    # The children are in no particular order.
+    "this directory's nested (child) files"
+    children(first: Int! = -1): [File!]!
+    # escaping this parent dir is not allowed.
+    "returns the specified nested file, or null if it doesn't exist"
+    file(path: String!): File
+}
+
+# do not reference Internal_OtherFile; the other file types may be moved to new types.
+"do not reference this type or depend on it in any way"
+type Internal_OtherFile implements File {
+    id: ID!
+    name: String!
+    path: String!
+    size: Int64!
+    mode: FileMode!
+    modTime: String!
+    parent: File
+}
+
+"a generic result of an operation"
+interface Result {
+    "a string describing the operation"
+    s: String!
+    "any warning messages, or null"
+    warning: String
+}
+
+type OKResult implements Result {
+    s: String!
+    warning: String
+}
+
+"the result of a file operation"
+type FileResult implements Result {
+    s: String!
+    warning: String
+    "the target file"
+    file: File!
+}
+
+type Query {
+    "get the root dir"
+    root: Dir!
+    # Returns the specified dir. There is no concept of a current/working directory.
+    # If the dir doesn't exist, null is returned.
+    "returns the specified dir, or null if it doesn't exist"
+    cd(path: String!): Dir
+    # essentially a shortcut for root.file(path)
+    "returns the specified nested file, or null if it doesn't exist"
+    file(path: String!): File
+}
+
+"specifies how a file is to be opened"
+enum FileOpen {
+    "create file if it doesn't exist"
+    create
+    "file must not exist"
+    new
+    "truncate the file if it exists"
+    truncate
+    "writes will be appended to the end of the file"
+    append
+}
+
+type Mutation {
+    "remove the specified file; if a directory, it must be empty"
+    remove(path: String!): OKResult!
+    "rename a file"
+    rename(path: String!, newName: String!): FileResult!
+    "change a file's mode (permission bits)"
+    chmod(path: String!, mode: Int!): FileResult!
+    "write to the specified file"
+    write(path: String!, contents: String!, open: [FileOpen!]! = [create, truncate], encoding: Encoding! = utf8): FileResult!
+    "make a single dir"
+    mkdir(path: String!): FileResult!
+    "make entire dir path, attempts to create any missing dirs"
+    mkdirAll(path: String!): FileResult!
+}
