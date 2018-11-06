@@ -36,3 +36,105 @@ $ fsgraph &
 By default it serves files from your current directory on localhost:8080 (only localhost can connect), and protected is enabled which means any writes will go to a separate temporary location.
 Scope is used to create file IDs, as a way of attempting to make them global IDs. By default it is your computer's host name, a colon, and the root dir path, which all gets hashed.
 All of these defaults can be overridden on the command line.
+
+Example:
+
+```graphql
+query ls {
+  root {
+    children {
+      name
+      mode {
+        type
+      }
+    }
+  }
+}
+```
+
+Output:
+
+```json
+{
+  "data": {
+    "root": {
+      "children": [
+        {
+          "name": ".git",
+          "mode": {
+            "type": "dir"
+          }
+        },
+        {
+          "name": "schema.graphql",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "LICENSE",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "gqlgen.yml",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "fsgraph_test.go",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "cmd",
+          "mode": {
+            "type": "dir"
+          }
+        },
+        {
+          "name": "generated.go",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "resolver.go",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "README.md",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "fs.go",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "models_gen.go",
+          "mode": {
+            "type": "regular"
+          }
+        },
+        {
+          "name": "types.go",
+          "mode": {
+            "type": "regular"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+See the GraphQL schema file: [schema.graphql](https://github.com/millerlogic/fsgraph/blob/master/schema.graphql)
